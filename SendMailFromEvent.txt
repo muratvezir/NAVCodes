@@ -1,0 +1,63 @@
+OBJECT Codeunit 50015 SendMaild
+{
+  OBJECT-PROPERTIES
+  {
+    Date=13.11.17;
+    Time=17:58:11;
+    Modified=Yes;
+    Version List=;
+  }
+  PROPERTIES
+  {
+    OnRun=BEGIN
+          END;
+
+  }
+  CODE
+  {
+    VAR
+      SalesLine@1000000000 : Record 37;
+      Item@1000000001 : Record 27;
+      SMTPMail@1000000003 : Codeunit 400;
+      IsSendMail@1000000002 : Boolean;
+
+    [EventSubscriber(Table,36,OnBeforeModifyEvent)]
+    LOCAL PROCEDURE SalesOrderReleased@1000000000(VAR Rec@1000000000 : Record 36;VAR xRec@1000000001 : Record 36;RunTrigger@1000000002 : Boolean);
+    BEGIN
+
+      // IF ORDER IS RELASED ELSE EXIT
+      IF Rec."Document Type" <> Rec."Document Type"::Order THEN
+        EXIT;
+
+      CLEAR(IsSendMail);
+      //CREATE MAIL
+      SMTPMail.CreateMessage('test object','123@yandex.com.tr','123@yandex.com.tr','test','some text body',FALSE);
+
+
+      // FIND XREC VALUE AND CHECK ORDER IS RELEASED
+      xRec.GET(Rec."Document Type",Rec."No.");
+      IF (xRec.Status<> Rec.Status) AND (Rec.Status = Rec.Status::Released) THEN
+        BEGIN
+          SalesLine.SETRANGE("Document No.",Rec."No.");
+          SalesLine.SETRANGE("Document Type",Rec."Document Type");
+          IF SalesLine.FINDSET THEN;
+            REPEAT
+                IF SalesLine.Type = SalesLine.Type::Item THEN
+                  BEGIN
+                    IF Item.GET(SalesLine."No.") AND (Item."Product Group Code" <> '') THEN
+                      BEGIN
+                         // ANY LINE CAN MAKE THIS CONDITION TRIGGER TO SEND MAIL
+                         IsSendMail := TRUE
+                      END
+                  END
+            UNTIL SalesLine.NEXT = 0;
+       IF IsSendMail THEN
+       SMTPMail.Send;
+        END
+    END;
+
+    BEGIN
+    END.
+  }
+}
+
