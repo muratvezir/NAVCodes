@@ -1,0 +1,1398 @@
+OBJECT Codeunit 50010 E-Commerce Web Service Handler
+{
+  OBJECT-PROPERTIES
+  {
+    Date=25.10.17;
+    Time=14:28:38;
+    Modified=Yes;
+    Version List=PRX.OGE.WSC.00;
+  }
+  PROPERTIES
+  {
+    OnRun=BEGIN
+          END;
+
+  }
+  CODE
+  {
+    VAR
+      Customer@1000000000 : Record 18;
+      Item@1000000001 : Record 27;
+      UnitofMeas@1000 : Record 204;
+      ItemCat@1001 : Record 5722;
+      CurrencyExchangeRate@1002 : Record 330;
+      CurrencyExchangeRateLst@1009 : Record 330;
+      CustLedgerEntry@1003 : Record 21;
+      ProductGroup@1004 : Record 5723;
+      SubProductGroup@1005 : Record 50002;
+      ItemLedgerEntry@1006 : Record 32;
+      SalesInvoiceLine@1007 : Record 113;
+      BrandName@1008 : Record 50001;
+      SalesPrice@1010 : Record 7002;
+
+    PROCEDURE GetItems@1000000000(VAR ItemExport@1000000000 : XMLport 50001);
+    BEGIN
+      Item.SETRANGE("Web Item",TRUE);
+      ItemExport.SETTABLEVIEW(Item);
+    END;
+
+    PROCEDURE GetItemsV2@9(VAR ItemExportInventory@1000000000 : XMLport 50009);
+    BEGIN
+      ItemExportInventory.SETTABLEVIEW(Item)
+    END;
+
+    PROCEDURE GetCustomer@1000000001(VAR Customers@1000000000 : XMLport 50000);
+    BEGIN
+      Customers.SETTABLEVIEW(Customer)
+    END;
+
+    PROCEDURE GetCustomerDC@10(VAR CustomerDebitCredit@1000000000 : XMLport 50011);
+    BEGIN
+      CustomerDebitCredit.SETTABLEVIEW(Customer)
+    END;
+
+    PROCEDURE GetCategory@1(VAR ItemCategory@1000 : XMLport 50003);
+    BEGIN
+      ItemCategory.SETTABLEVIEW(ItemCat);
+    END;
+
+    PROCEDURE GetUnit@2(VAR UnitofMeasure@1000 : XMLport 50002);
+    BEGIN
+      UnitofMeasure.SETTABLEVIEW(UnitofMeas);
+    END;
+
+    PROCEDURE GetCurrency@3(VAR Currency@1001 : XMLport 50004);
+    BEGIN
+      CurrencyExchangeRateLst.SETCURRENTKEY("Starting Date");
+      CurrencyExchangeRateLst.FINDLAST();
+      CurrencyExchangeRate.SETRANGE("Starting Date",CurrencyExchangeRateLst."Starting Date");
+      Currency.SETTABLEVIEW(CurrencyExchangeRate);
+    END;
+
+    PROCEDURE GetCustomerStatement@5(CustomerNo@1000 : Code[20];VAR CustStatmentExport@1001 : XMLport 50005);
+    BEGIN
+      CustLedgerEntry.SETRANGE("Customer No.",CustomerNo);
+      CustStatmentExport.SETTABLEVIEW(CustLedgerEntry);
+    END;
+
+    PROCEDURE GetHeaderCategory@6(VAR ItemHeadGroup@1000 : XMLport 50007);
+    BEGIN
+      ItemHeadGroup.SETTABLEVIEW(ProductGroup);
+    END;
+
+    PROCEDURE GetSubCategory@7(VAR ItemSubCategory@1000 : XMLport 50008);
+    BEGIN
+      ItemSubCategory.SETTABLEVIEW(SubProductGroup);
+    END;
+
+    PROCEDURE GetSalesDetail@8(VAR ItemSalesDetail@1000 : XMLport 50010;ItemNo@1001 : Code[20];CustomerNo@1002 : Code[20]) : Text;
+    BEGIN
+      ItemLedgerEntry.SETFILTER("Item No.",ItemNo);
+      ItemLedgerEntry.SETRANGE("Entry Type",ItemLedgerEntry."Entry Type"::Sale);
+      ItemLedgerEntry.SETFILTER("Invoiced Quantity",'<>0');
+      ItemLedgerEntry.SETFILTER("Source No.",CustomerNo);
+      ItemSalesDetail.SETTABLEVIEW(ItemLedgerEntry);
+    END;
+
+    PROCEDURE GetInvoiceDetail@11(VAR SalesInvoiceDetail@1000 : XMLport 50012;SalesInvoice@1001 : Code[20]) : Text;
+    BEGIN
+      SalesInvoiceLine.SETFILTER("Document No.",SalesInvoice);
+      SalesInvoiceDetail.SETTABLEVIEW(SalesInvoiceLine);
+    END;
+
+    PROCEDURE GetBrands@13(VAR BrandNameExport@1000 : XMLport 50013);
+    BEGIN
+      BrandNameExport.SETTABLEVIEW(BrandName);
+    END;
+
+    PROCEDURE AddSalesOrder@4(SalesOrderImport@1000 : XMLport 50006);
+    BEGIN
+      SalesOrderImport.IMPORT;
+    END;
+
+    PROCEDURE AddCreditCardSlip@12(CreditCardImport@1000 : XMLport 50014);
+    BEGIN
+      CreditCardImport.IMPORT;
+    END;
+
+    BEGIN
+    END.
+  }
+}
+
+OBJECT XMLport 50000 CustExport
+{
+  OBJECT-PROPERTIES
+  {
+    Date=22.09.17;
+    Time=14:08:43;
+    Modified=Yes;
+    Version List=PRX.OGE.WSC.00;
+  }
+  PROPERTIES
+  {
+    UseDefaultNamespace=Yes;
+  }
+  ELEMENTS
+  {
+    { [{C5A3942A-1D22-4419-BA74-2E0D70B6BE36}];  ;CustElement         ;Element ;Text     }
+
+    { [{3A03C4CB-ED75-430E-86E7-D8C770CD4729}];1 ;Customer            ;Element ;Table   ;
+                                                  SourceTable=Table18 }
+
+    { [{C3A64655-BC4A-4C52-8B07-76682578DFF0}];2 ;LogicalReference    ;Element ;Field   ;
+                                                  DataType=Integer;
+                                                  SourceField=Customer::Logical Reference }
+
+    { [{3363112D-F95E-46F3-80F0-376E4D765857}];2 ;BayiNo              ;Element ;Field   ;
+                                                  DataType=Code;
+                                                  SourceField=Customer::No. }
+
+    { [{B904C8CB-CACC-4B44-B25E-45B6F09D51A3}];2 ;BayiGrubu           ;Element ;Field   ;
+                                                  DataType=Text;
+                                                  SourceField=Customer::Customer Web Group }
+
+    { [{3CC4E38E-49D3-40C6-B5C9-71CEA713C0CC}];2 ;BayiIskonto         ;Element ;Field   ;
+                                                  DataType=Decimal;
+                                                  SourceField=Customer::Customer Web Discount }
+
+    { [{2C9C1EA1-2053-4694-BCFC-3FE33D6D1C3B}];2 ;Bayi                ;Element ;Field   ;
+                                                  DataType=Text;
+                                                  SourceField=Customer::E-Mail }
+
+    { [{2E984261-1A37-4DEB-9178-5761D17A6C43}];2 ;AdiSoyadi           ;Element ;Field   ;
+                                                  DataType=Text;
+                                                  SourceField=Customer::Contact }
+
+    { [{1C973783-13A6-4B59-9DCC-124E1CFFF58A}];2 ;Email               ;Element ;Field   ;
+                                                  DataType=Text;
+                                                  SourceField=Customer::E-Mail }
+
+    { [{4B89D2C7-D7BD-469B-B060-3772F316357E}];2 ;Sifre               ;Element ;Field   ;
+                                                  DataType=Text;
+                                                  SourceField=Customer::Customer Web Key }
+
+    { [{D57D406C-B743-45B2-84CB-84AB6AE70D9F}];2 ;FirmaIsim           ;Element ;Field   ;
+                                                  DataType=Code;
+                                                  SourceField=Customer::Search Name }
+
+    { [{5FB4B6B4-52BD-4A61-9352-3C9BBF3BC693}];2 ;Telefon             ;Element ;Field   ;
+                                                  DataType=Text;
+                                                  SourceField=Customer::Fax No. }
+
+    { [{AF272176-C9CE-4AC1-A890-ECEA92333161}];2 ;Cep                 ;Element ;Field   ;
+                                                  DataType=Text;
+                                                  SourceField=Customer::Phone No. }
+
+    { [{C193B66B-24D4-413D-A725-98D0A97565CA}];2 ;Adres               ;Element ;Field   ;
+                                                  DataType=Text;
+                                                  SourceField=Customer::Address }
+
+    { [{E6209C93-10A5-4EE7-98B8-6DCCF8F14DFA}];2 ;Ulke                ;Element ;Field   ;
+                                                  DataType=Code;
+                                                  SourceField=Customer::Country/Region Code }
+
+    { [{E4C06701-21F0-42B2-B1D5-58553A92DB9E}];2 ;Sehir               ;Element ;Field   ;
+                                                  DataType=Text;
+                                                  SourceField=Customer::City }
+
+    { [{132D2731-D022-49B0-8A23-EB34682AA6F8}];2 ;˜lce                ;Element ;Field   ;
+                                                  DataType=Text;
+                                                  SourceField=Customer::County }
+
+    { [{00B1C20D-444D-4BE2-A959-436DE3DC83CE}];2 ;VergiDairesi        ;Element ;Field   ;
+                                                  DataType=Text;
+                                                  SourceField=Customer::VAT Registration No. }
+
+    { [{DCE6780D-CFCC-4DE9-A55E-0B33EBCA1DB3}];2 ;VergiNo             ;Element ;Field   ;
+                                                  DataType=Code;
+                                                  SourceField=Customer::Tax Area Code }
+
+  }
+  EVENTS
+  {
+  }
+  REQUESTPAGE
+  {
+    PROPERTIES
+    {
+    }
+    CONTROLS
+    {
+    }
+  }
+  CODE
+  {
+
+    BEGIN
+    END.
+  }
+}
+
+OBJECT XMLport 50001 ItemExport
+{
+  OBJECT-PROPERTIES
+  {
+    Date=31.10.17;
+    Time=14:06:52;
+    Modified=Yes;
+    Version List=PRX.OGE.WSC.00;
+  }
+  PROPERTIES
+  {
+    UseDefaultNamespace=Yes;
+  }
+  ELEMENTS
+  {
+    { [{75E4E4E4-A616-41AE-82CB-A0307B425E5E}];  ;ItemElement         ;Element ;Text     }
+
+    { [{9FB69311-A56B-4B7B-B113-09CCEAC76948}];1 ;Item                ;Element ;Table   ;
+                                                  SourceTable=Table27;
+                                                  Export::OnAfterGetRecord=BEGIN
+                                                                             IF Item.Inventory>0 THEN
+                                                                               ItemHasStock := 'Evet'
+                                                                             ELSE
+                                                                               ItemHasStock := 'Hayr';
+
+                                                                             VATPostingSetup.SETRANGE("VAT Prod. Posting Group",Item."VAT Prod. Posting Group");
+                                                                             IF VATPostingSetup.FINDFIRST THEN
+                                                                             VatRateVal:=FORMAT(VATPostingSetup."VAT %");
+
+                                                                             CLEAR(ItmPicture);
+                                                                             Item.CALCFIELDS(Picture);
+                                                                             IF Item.Picture.HASVALUE THEN
+                                                                               BEGIN
+                                                                               CLEAR(IStream);
+                                                                               CLEAR(MemoryStream);
+                                                                               CLEAR(Bytes);
+                                                                               Item.Picture.CREATEINSTREAM(IStream);
+                                                                               MemoryStream := MemoryStream.MemoryStream();
+                                                                               COPYSTREAM(MemoryStream,IStream);
+                                                                               Bytes := MemoryStream.GetBuffer();
+                                                                               ItmPicture := Convert.ToBase64String(Bytes);
+                                                                               END;
+
+                                                                             CLEAR("Sales Price");
+                                                                             CLEAR(MemoryStream);
+                                                                             CLEAR(Bytes);
+                                                                             CLEAR(IStreamTxt);
+                                                                             CLEAR(TechnicalSpec);
+                                                                             RecordLink.SETRANGE("Record ID",Item.RECORDID);
+                                                                             RecordLink.SETRANGE(Type,RecordLink.Type::Note);
+                                                                             IF RecordLink.FINDFIRST THEN
+                                                                                BEGIN
+                                                                                 RecordLink.CALCFIELDS(Note);
+                                                                                 IF RecordLink.Note.HASVALUE THEN BEGIN
+
+                                                                                   RecordLink.Note.CREATEINSTREAM(IStreamTxt,TEXTENCODING::UTF8);
+                                                                                   MemoryStream := MemoryStream.MemoryStream();
+                                                                                   COPYSTREAM(MemoryStream,IStreamTxt);
+                                                                                   Bytes := MemoryStream.GetBuffer();
+                                                                                   TechnicalSpec := Convert.ToBase64String(Bytes);
+                                                                                 END;
+                                                                               END;
+                                                                           END;
+                                                                            }
+
+    { [{6D3907F7-0C1F-4684-83BD-A1399B28DEE3}];2 ;Vatrate             ;Element ;Text    ;
+                                                  VariableName=VatRateVal }
+
+    { [{5EA31080-0B2D-4E65-BC1F-ACDB650DAB07}];2 ;LogicalReference    ;Element ;Field   ;
+                                                  DataType=Integer;
+                                                  SourceField=Item::Logical Reference }
+
+    { [{38507D4A-CC08-427D-9254-4B38AD7B48E0}];2 ;No.                 ;Element ;Field   ;
+                                                  DataType=Code;
+                                                  SourceField=Item::No. }
+
+    { [{DEA1D41B-5987-42D1-B7E5-FD580FFA1E71}];2 ;Description         ;Element ;Field   ;
+                                                  DataType=Text;
+                                                  SourceField=Item::Description }
+
+    { [{7D3D7EAA-ED9E-4B46-91FE-61EDE34EF780}];2 ;BaseUnitofMeasure   ;Element ;Field   ;
+                                                  DataType=Code;
+                                                  SourceField=Item::Base Unit of Measure }
+
+    { [{01B47E9B-455D-46D6-BDBA-3CD6CF5E0180}];2 ;ItemCategoryCode    ;Element ;Field   ;
+                                                  DataType=Code;
+                                                  SourceField=Item::Item Category Code }
+
+    { [{DC12C7DC-2481-4AD3-A035-F206DC4786BB}];2 ;ItemHasStock        ;Element ;Text    ;
+                                                  VariableName=ItemHasStock;
+                                                  TextType=Text }
+
+    { [{337F094A-A39B-4D7B-BB6F-6CF72FD7C360}];2 ;Inventory           ;Element ;Field   ;
+                                                  DataType=Decimal;
+                                                  SourceField=Item::Inventory }
+
+    { [{628BC320-797D-4D8A-82C7-56EC09834E97}];2 ;Picture             ;Element ;Text    ;
+                                                  VariableName=ItmPicture;
+                                                  TextType=Text;
+                                                  DataType=BLOB }
+
+    { [{45E90FE6-CBA8-4F4B-88C0-03236481F4F9}];2 ;ItemProperties      ;Element ;Field   ;
+                                                  DataType=Boolean;
+                                                  SourceField=Item::Comment }
+
+    { [{7D06AC2E-2302-43AF-8018-28D2CCFCA3AA}];2 ;ItemMainCategoryCode;Element ;Field   ;
+                                                  DataType=Code;
+                                                  SourceField=Item::Item Category Code }
+
+    { [{5D7F49D3-07AB-4B45-8D77-41771FE47F02}];2 ;ItemHeadCategoryCode;Element ;Field   ;
+                                                  DataType=Code;
+                                                  SourceField=Item::Product Group Code }
+
+    { [{DBE06A30-1D72-453D-B611-F1DDD03AD54C}];2 ;ItemSubCategoryCode ;Element ;Field   ;
+                                                  DataType=Code;
+                                                  SourceField=Item::Sub Product Group Code }
+
+    { [{CD2FA9C5-C2C8-4EA5-ADEE-1C66B524EABC}];2 ;BrandName           ;Element ;Field   ;
+                                                  DataType=Code;
+                                                  SourceField=Item::Brand Name }
+
+    { [{840F70F7-716A-4596-B323-BC0CF7549A3D}];2 ;ExpationCalculation ;Element ;Field   ;
+                                                  DataType=DateFormula;
+                                                  SourceField=Item::Expiration Calculation }
+
+    { [{364C2F41-DCC1-4589-A68F-F0166C6ECF25}];2 ;TechnicalSpec       ;Element ;Text    ;
+                                                  TextType=Text }
+
+    { [{E78C85B4-E309-4D21-80F1-D4B6C7876672}];2 ;GrossWeight         ;Element ;Field   ;
+                                                  DataType=Decimal;
+                                                  SourceField=Item::Gross Weight }
+
+    { [{BC9827DB-1051-4E59-8FF2-F884783E5801}];2 ;NetWeight           ;Element ;Field   ;
+                                                  DataType=Decimal;
+                                                  SourceField=Item::Net Weight }
+
+    { [{DEB9D232-E5B2-4D85-BD2C-074080E2433D}];2 ;NetVolume           ;Element ;Field   ;
+                                                  DataType=Decimal;
+                                                  SourceField=Item::Net Volume }
+
+    { [{383C549A-6E08-4EA6-A1C2-AEC0D0592DC5}];2 ;WebPublish          ;Element ;Field   ;
+                                                  DataType=Boolean;
+                                                  SourceField=Item::Web Publish }
+
+    { [{940A5955-9B25-45F7-8C0D-8402051D1983}];2 ;SalesPrice          ;Element ;Table   ;
+                                                  VariableName=Sales Price;
+                                                  SourceTable=Table7002;
+                                                  LinkFields=Field1=FIELD(Field1);
+                                                  LinkTable=Item }
+
+    { [{824AD209-5E23-44B4-9B92-BE765C7123D1}];3 ;ItemNo              ;Element ;Field   ;
+                                                  DataType=Code;
+                                                  SourceField=Sales Price::Item No. }
+
+    { [{C373BD2E-E1B6-4BB0-9875-29C9C5CFB9F0}];3 ;UnitPrice           ;Element ;Field   ;
+                                                  DataType=Decimal;
+                                                  SourceField=Sales Price::Unit Price }
+
+    { [{67CC5A55-83D1-49B0-9C20-13540D3907B1}];3 ;CurrencyCode        ;Element ;Field   ;
+                                                  DataType=Code;
+                                                  SourceField=Sales Price::Currency Code }
+
+    { [{8C3935FB-2654-48E4-B472-8BD040B11307}];3 ;PriceIncludesVAT    ;Element ;Field   ;
+                                                  DataType=Boolean;
+                                                  SourceField=Sales Price::Price Includes VAT }
+
+    { [{B6D688EE-F487-4676-B883-6B627FD88E4D}];3 ;SalesType           ;Element ;Field   ;
+                                                  DataType=Option;
+                                                  SourceField=Sales Price::Sales Type }
+
+    { [{90F4B1F5-2403-41E0-A397-8C8676D97E45}];2 ;SerialNumbers       ;Element ;Table   ;
+                                                  SourceTable=Table32;
+                                                  SourceTableView=SORTING(Field6500)
+                                                                  ORDER(Ascending)
+                                                                  WHERE(Field13=FILTER(>0));
+                                                  LinkFields=Field2=FIELD(Field1);
+                                                  LinkTable=Item }
+
+    { [{A90193E4-3097-41DF-9F42-35E7C91111B9}];3 ;SerialNumber        ;Element ;Field   ;
+                                                  DataType=Code;
+                                                  SourceField=Item Ledger Entry::Serial No.;
+                                                  MinOccurs=Zero }
+
+  }
+  EVENTS
+  {
+  }
+  REQUESTPAGE
+  {
+    PROPERTIES
+    {
+    }
+    CONTROLS
+    {
+    }
+  }
+  CODE
+  {
+    VAR
+      Bytes@1000 : DotNet "'mscorlib'.System.Array";
+      Convert@1001 : DotNet "'mscorlib'.System.Convert";
+      MemoryStream@1002 : DotNet "'mscorlib'.System.IO.MemoryStream";
+      IStream@1003 : InStream;
+      IStreamTxt@1004 : InStream;
+      Line@1005 : Text;
+      VATPostingSetup@1006 : Record 325;
+      RecordLink@1007 : Record 2000000068;
+      NoteText@1008 : BigText;
+
+    BEGIN
+    END.
+  }
+}
+
+OBJECT XMLport 50002 Unit of Measure
+{
+  OBJECT-PROPERTIES
+  {
+    Date=26.09.17;
+    Time=14:26:58;
+    Modified=Yes;
+    Version List=PRX.OGE.WSC.00;
+  }
+  PROPERTIES
+  {
+    UseDefaultNamespace=Yes;
+  }
+  ELEMENTS
+  {
+    { [{6321CFDB-1353-4BE4-874E-23312F7F30F2}];  ;UnitofMeasureRoot   ;Element ;Text     }
+
+    { [{0CDC1364-79AF-4248-BD33-EAE17383E9FD}];1 ;UnitofMeasure       ;Element ;Table   ;
+                                                  SourceTable=Table204 }
+
+    { [{98494610-7FE5-4AB7-B641-D1483D0A43A3}];2 ;LogicalReference    ;Element ;Field   ;
+                                                  DataType=Integer;
+                                                  SourceField=Unit of Measure::Logical Reference }
+
+    { [{1F4B6999-60C1-4FDF-A94E-482F3AA4DC08}];2 ;Birim               ;Element ;Field   ;
+                                                  DataType=Code;
+                                                  SourceField=Unit of Measure::Code }
+
+    { [{6DEE47B3-674D-497B-9C14-88C48006637B}];2 ;Aciklama            ;Element ;Field   ;
+                                                  DataType=Text;
+                                                  SourceField=Unit of Measure::Description }
+
+  }
+  EVENTS
+  {
+  }
+  REQUESTPAGE
+  {
+    PROPERTIES
+    {
+    }
+    CONTROLS
+    {
+    }
+  }
+  CODE
+  {
+
+    BEGIN
+    END.
+  }
+}
+
+OBJECT XMLport 50003 Item Category
+{
+  OBJECT-PROPERTIES
+  {
+    Date=22.09.17;
+    Time=14:21:25;
+    Modified=Yes;
+    Version List=PRX.OGE.WSC.00;
+  }
+  PROPERTIES
+  {
+    UseDefaultNamespace=Yes;
+  }
+  ELEMENTS
+  {
+    { [{AE9F186C-9B37-4A6A-B153-EBA3C1863A32}];  ;ItemCategoryRoot    ;Element ;Text     }
+
+    { [{D61F4A66-0D24-4B83-8E30-7822C65E39E2}];1 ;ItemCategory        ;Element ;Table   ;
+                                                  SourceTable=Table5722 }
+
+    { [{F3BFD291-031D-4354-87A4-620FEFED692C}];2 ;LogicalReference    ;Element ;Field   ;
+                                                  DataType=Integer;
+                                                  SourceField=Item Category::Logical Reference }
+
+    { [{02A398C0-F909-4322-99CB-D2AC5BDBB13D}];2 ;Kod                 ;Element ;Field   ;
+                                                  DataType=Code;
+                                                  SourceField=Item Category::Code }
+
+    { [{8B4B909B-40E2-4685-BF67-5A1FDDAF863E}];2 ;Aciklama            ;Element ;Field   ;
+                                                  DataType=Text;
+                                                  SourceField=Item Category::Description }
+
+  }
+  EVENTS
+  {
+  }
+  REQUESTPAGE
+  {
+    PROPERTIES
+    {
+    }
+    CONTROLS
+    {
+    }
+  }
+  CODE
+  {
+
+    BEGIN
+    END.
+  }
+}
+
+OBJECT XMLport 50004 Currency
+{
+  OBJECT-PROPERTIES
+  {
+    Date=28.08.17;
+    Time=23:43:01;
+    Modified=Yes;
+    Version List=PRX.OGE.WSC.00;
+  }
+  PROPERTIES
+  {
+    UseDefaultNamespace=Yes;
+  }
+  ELEMENTS
+  {
+    { [{C3FEDE2B-7FB9-4F08-9D6B-99437E5607E9}];  ;CurrRoot            ;Element ;Text     }
+
+    { [{9F7C8657-009B-4563-9623-6BC232792C37}];1 ;Currates            ;Element ;Table   ;
+                                                  SourceTable=Table330 }
+
+    { [{EDCC3024-2862-4713-81C7-0CCFD50C4C60}];2 ;CurrencyCode        ;Element ;Field   ;
+                                                  DataType=Code;
+                                                  SourceField=Currency Exchange Rate::Currency Code }
+
+    { [{0F2CDE38-C5F2-40EE-98C3-29B19082ED18}];2 ;StartingDate        ;Element ;Field   ;
+                                                  DataType=Date;
+                                                  SourceField=Currency Exchange Rate::Starting Date }
+
+    { [{22DB1E4F-E70C-45B3-B0D6-6FA2DDC52AB5}];2 ;Currency            ;Element ;Field   ;
+                                                  DataType=Decimal;
+                                                  SourceField=Currency Exchange Rate::Relational Adjmt Exch Rate Amt }
+
+  }
+  EVENTS
+  {
+  }
+  REQUESTPAGE
+  {
+    PROPERTIES
+    {
+    }
+    CONTROLS
+    {
+    }
+  }
+  CODE
+  {
+
+    BEGIN
+    END.
+  }
+}
+
+OBJECT XMLport 50005 CustStatmentExport
+{
+  OBJECT-PROPERTIES
+  {
+    Date=13.09.17;
+    Time=13:28:36;
+    Modified=Yes;
+    Version List=PRX.OGE.WSC.00;
+  }
+  PROPERTIES
+  {
+    UseDefaultNamespace=Yes;
+  }
+  ELEMENTS
+  {
+    { [{4484C2FD-5CF8-4CB1-97D7-FCE42352C74E}];  ;CustStatement       ;Element ;Text     }
+
+    { [{E1E929F0-0289-491B-8C73-FB66578F738C}];1 ;CustLedgerEntry     ;Element ;Table   ;
+                                                  SourceTable=Table21 }
+
+    { [{9B008C9E-9BAF-4B00-84A7-8B4A68E295C7}];2 ;CustomerCode        ;Element ;Field   ;
+                                                  DataType=Code;
+                                                  SourceField=Cust. Ledger Entry::Customer No. }
+
+    { [{95B205EE-BDFA-481A-AC70-6F0267800C9F}];2 ;PostingDate         ;Element ;Field   ;
+                                                  DataType=Date;
+                                                  SourceField=Cust. Ledger Entry::Posting Date }
+
+    { [{A3CFAAA0-C368-42C6-B777-C52F05941ABC}];2 ;DocumentNo          ;Element ;Field   ;
+                                                  DataType=Code;
+                                                  SourceField=Cust. Ledger Entry::Document No. }
+
+    { [{C4E1A65C-643E-4AFA-B916-444DB6D5F69A}];2 ;Description         ;Element ;Field   ;
+                                                  DataType=Text;
+                                                  SourceField=Cust. Ledger Entry::Description }
+
+    { [{98BC635C-4A7D-40F9-841E-1EC05201C157}];2 ;Currency            ;Element ;Field   ;
+                                                  DataType=Code;
+                                                  SourceField=Cust. Ledger Entry::Currency Code }
+
+    { [{039E45FD-1CAF-4ACF-AC61-5188D01FDE71}];2 ;Amount              ;Element ;Field   ;
+                                                  DataType=Decimal;
+                                                  SourceField=Cust. Ledger Entry::Amount }
+
+  }
+  EVENTS
+  {
+  }
+  REQUESTPAGE
+  {
+    PROPERTIES
+    {
+    }
+    CONTROLS
+    {
+    }
+  }
+  CODE
+  {
+
+    BEGIN
+    END.
+  }
+}
+
+OBJECT XMLport 50006 Sales Order Import
+{
+  OBJECT-PROPERTIES
+  {
+    Date=30.10.17;
+    Time=12:40:08;
+    Modified=Yes;
+    Version List=PRX.OGE.WSV.00;
+  }
+  PROPERTIES
+  {
+    UseDefaultNamespace=Yes;
+  }
+  ELEMENTS
+  {
+    { [{BEF8DAFB-ACE7-4235-9384-38F650E8089B}];  ;SalesHeader         ;Element ;Table   ;
+                                                  SourceTable=Table36 }
+
+    { [{0D884EA8-6E4C-4136-B129-346C697F96C0}];1 ;DocumentNo          ;Element ;Field   ;
+                                                  DataType=Code;
+                                                  SourceField=Sales Header::No. }
+
+    { [{E04A8E52-B247-4597-BC1B-FE6ADFEF65B6}];1 ;DocumentType        ;Element ;Field   ;
+                                                  DataType=Option;
+                                                  SourceField=Sales Header::Document Type }
+
+    { [{03D84FF7-451E-4C2F-9788-3BDEDD40C607}];1 ;SellToCustomerNo    ;Element ;Field   ;
+                                                  DataType=Code;
+                                                  SourceField=Sales Header::Sell-to Customer No. }
+
+    { [{D990A6DD-2229-4E8A-8A9D-65A8C3E14A28}];1 ;SalesLine           ;Element ;Table   ;
+                                                  SourceTable=Table37;
+                                                  LinkFields=Field1=FIELD(Field1),
+                                                             Field3=FIELD(Field3);
+                                                  LinkTable=Sales Header }
+
+    { [{D789BF84-4B8B-4DE5-8B17-F454CB023A9F}];2 ;DocumentType        ;Element ;Field   ;
+                                                  DataType=Option;
+                                                  SourceField=Sales Line::Document Type }
+
+    { [{AF51B518-4579-4492-8B18-A4AAFE68E41B}];2 ;Type                ;Element ;Field   ;
+                                                  DataType=Option;
+                                                  SourceField=Sales Line::Type }
+
+    { [{420D9437-0D89-4DB1-B497-A0EF84151A3E}];2 ;LineNo              ;Element ;Field   ;
+                                                  DataType=Integer;
+                                                  SourceField=Sales Line::Line No. }
+
+    { [{30B33DF6-04F8-493A-A19C-3134B000F4B5}];2 ;No                  ;Element ;Field   ;
+                                                  DataType=Code;
+                                                  SourceField=Sales Line::No. }
+
+    { [{AAABE295-8D9E-4DA7-BEE9-83F3F7A32B4E}];2 ;LocationCode        ;Element ;Field   ;
+                                                  DataType=Code;
+                                                  SourceField=Sales Line::Location Code }
+
+    { [{1721AC29-D55A-4068-A3CD-0D767EF5AC06}];2 ;Quantity            ;Element ;Field   ;
+                                                  DataType=Decimal;
+                                                  SourceField=Sales Line::Quantity }
+
+    { [{D4752AC9-A1DB-46C4-85AB-704251BFF75C}];2 ;UnitofMeasureCode   ;Element ;Field   ;
+                                                  DataType=Code;
+                                                  SourceField=Sales Line::Unit of Measure Code }
+
+    { [{236A6F6C-CD99-40BE-B504-DED811B1BC6D}];2 ;CurrencyCode        ;Element ;Field   ;
+                                                  DataType=Code;
+                                                  SourceField=Sales Header::Currency Code }
+
+    { [{19DBBFB0-3EA0-412F-BCCA-A8B92C60CD3A}];2 ;UnitPrice           ;Element ;Field   ;
+                                                  DataType=Decimal;
+                                                  FieldValidate=No;
+                                                  SourceField=Sales Line::Unit Price }
+
+  }
+  EVENTS
+  {
+  }
+  REQUESTPAGE
+  {
+    PROPERTIES
+    {
+    }
+    CONTROLS
+    {
+    }
+  }
+  CODE
+  {
+
+    BEGIN
+    END.
+  }
+}
+
+OBJECT XMLport 50007 Item Head Group
+{
+  OBJECT-PROPERTIES
+  {
+    Date=22.09.17;
+    Time=14:22:42;
+    Modified=Yes;
+    Version List=PRX.OGE.WSV.00;
+  }
+  PROPERTIES
+  {
+    UseDefaultNamespace=Yes;
+  }
+  ELEMENTS
+  {
+    { [{FCC79617-E444-4F34-91E8-B8179C46EF2B}];  ;HeadGroupRoot       ;Element ;Text     }
+
+    { [{D63AA182-88B3-4E93-A944-50136238AC2A}];1 ;HeadGroup           ;Element ;Table   ;
+                                                  SourceTable=Table5723 }
+
+    { [{61839249-6C29-4449-A467-6068037E9843}];2 ;LogicalReference    ;Element ;Field   ;
+                                                  DataType=Integer;
+                                                  SourceField=Product Group::Logical Reference }
+
+    { [{792CC2B5-E29E-4D63-B500-F623B767B22E}];2 ;ItemCategoryCode    ;Element ;Field   ;
+                                                  DataType=Code;
+                                                  SourceField=Product Group::Item Category Code }
+
+    { [{FEC8A33C-13F3-4209-8315-82F0514A8975}];2 ;KategoriKod         ;Element ;Field   ;
+                                                  DataType=Code;
+                                                  SourceField=Product Group::Code }
+
+    { [{962634A4-7ACE-404A-8D5E-B33D83BFE9A0}];2 ;KategoriAciklama    ;Element ;Field   ;
+                                                  DataType=Text;
+                                                  SourceField=Product Group::Description }
+
+  }
+  EVENTS
+  {
+  }
+  REQUESTPAGE
+  {
+    PROPERTIES
+    {
+    }
+    CONTROLS
+    {
+    }
+  }
+  CODE
+  {
+
+    BEGIN
+    END.
+  }
+}
+
+OBJECT XMLport 50008 Item Sub Category
+{
+  OBJECT-PROPERTIES
+  {
+    Date=01.10.17;
+    Time=00:09:38;
+    Modified=Yes;
+    Version List=PRX.OGE.WSV.00;
+  }
+  PROPERTIES
+  {
+    UseDefaultNamespace=Yes;
+  }
+  ELEMENTS
+  {
+    { [{6678FB11-45C5-4DE6-A582-B95424C15902}];  ;SubGroupRoot        ;Element ;Text     }
+
+    { [{75F57552-C64B-4E75-B0CE-F52AE37D118B}];1 ;SubGroup            ;Element ;Table   ;
+                                                  SourceTable=Table50002 }
+
+    { [{ACE8C1A6-759E-45B5-8E1B-2AC0C655A41D}];2 ;SubKod              ;Element ;Field   ;
+                                                  DataType=Code;
+                                                  SourceField=Sub Product Grp::Code }
+
+    { [{1B9E43C1-AC17-4EC8-A2A4-E3E63A36822A}];2 ;SubAciklama         ;Element ;Field   ;
+                                                  DataType=Text;
+                                                  SourceField=Sub Product Grp::Description }
+
+    { [{FA7102AE-9A74-462D-BA6D-50FE70BF3DA6}];2 ;ItemCategoryCode    ;Element ;Field   ;
+                                                  DataType=Code;
+                                                  SourceField=Sub Product Grp::Item Category Code }
+
+    { [{B1EB08F9-C546-4C7A-AECA-6E4548604AC0}];2 ;HeadGroupCode       ;Element ;Field   ;
+                                                  DataType=Code;
+                                                  SourceField=Sub Product Grp::Product Group Code }
+
+    { [{2B106060-EC3F-4C1D-9D3E-9D32D2797324}];2 ;LogicalReference    ;Element ;Field   ;
+                                                  DataType=Integer;
+                                                  SourceField=Sub Product Grp::Logical Reference }
+
+  }
+  EVENTS
+  {
+  }
+  REQUESTPAGE
+  {
+    PROPERTIES
+    {
+    }
+    CONTROLS
+    {
+    }
+  }
+  CODE
+  {
+
+    BEGIN
+    END.
+  }
+}
+
+OBJECT XMLport 50009 Item Export Inventory
+{
+  OBJECT-PROPERTIES
+  {
+    Date=23.09.17;
+    Time=20:02:26;
+    Modified=Yes;
+    Version List=PRX.OGE.WSC.00;
+  }
+  PROPERTIES
+  {
+    Direction=Export;
+    Format/Evaluate=XML Format/Evaluate;
+    UseDefaultNamespace=Yes;
+  }
+  ELEMENTS
+  {
+    { [{75E4E4E4-A616-41AE-82CB-A0307B425E5E}];  ;ItemInventory       ;Element ;Text     }
+
+    { [{9FB69311-A56B-4B7B-B113-09CCEAC76948}];1 ;Item                ;Element ;Table   ;
+                                                  SourceTable=Table27 }
+
+    { [{5EA31080-0B2D-4E65-BC1F-ACDB650DAB07}];2 ;LogicalReference    ;Element ;Field   ;
+                                                  DataType=Integer;
+                                                  SourceField=Item::Logical Reference }
+
+    { [{38507D4A-CC08-427D-9254-4B38AD7B48E0}];2 ;No.                 ;Element ;Field   ;
+                                                  DataType=Code;
+                                                  SourceField=Item::No. }
+
+    { [{DEA1D41B-5987-42D1-B7E5-FD580FFA1E71}];2 ;Description         ;Element ;Field   ;
+                                                  DataType=Text;
+                                                  SourceField=Item::Description }
+
+    { [{7D3D7EAA-ED9E-4B46-91FE-61EDE34EF780}];2 ;BaseUnitofMeasure   ;Element ;Field   ;
+                                                  DataType=Code;
+                                                  SourceField=Item::Base Unit of Measure }
+
+    { [{337F094A-A39B-4D7B-BB6F-6CF72FD7C360}];2 ;Inventory           ;Element ;Field   ;
+                                                  DataType=Decimal;
+                                                  SourceField=Item::Inventory }
+
+  }
+  EVENTS
+  {
+  }
+  REQUESTPAGE
+  {
+    PROPERTIES
+    {
+    }
+    CONTROLS
+    {
+    }
+  }
+  CODE
+  {
+    VAR
+      Bytes@1000 : DotNet "'mscorlib'.System.Array";
+      Convert@1001 : DotNet "'mscorlib'.System.Convert";
+      MemoryStream@1002 : DotNet "'mscorlib'.System.IO.MemoryStream";
+      IStream@1003 : InStream;
+
+    BEGIN
+    END.
+  }
+}
+
+OBJECT XMLport 50010 Item Sales Detail
+{
+  OBJECT-PROPERTIES
+  {
+    Date=05.10.17;
+    Time=12:17:07;
+    Modified=Yes;
+    Version List=PRX.OGE.WSC.00;
+  }
+  PROPERTIES
+  {
+    UseDefaultNamespace=Yes;
+    OnInitXMLport=BEGIN
+                    "Item Ledger Entry".SETRANGE("Source No.",'M.000098');
+                  END;
+
+  }
+  ELEMENTS
+  {
+    { [{04030421-D9DF-41E3-BD48-BB10FADBCF37}];  ;SalesRoot           ;Element ;Text     }
+
+    { [{12E9074A-FB46-49F6-A98F-1E956A7A05D8}];1 ;LedgerEntry         ;Element ;Table   ;
+                                                  SourceTable=Table32;
+                                                  AutoUpdate=Yes }
+
+    { [{C7BE2ED4-1725-448A-AC22-E7058E0ED8EC}];2 ;Quantity            ;Element ;Field   ;
+                                                  DataType=Decimal;
+                                                  SourceField=Item Ledger Entry::Quantity }
+
+    { [{D63CD5E3-A3D7-4BB5-9DAB-12D61B658B70}];2 ;PostingDate         ;Element ;Field   ;
+                                                  DataType=Date;
+                                                  SourceField=Item Ledger Entry::Posting Date }
+
+    { [{A5127A10-C4D1-44E6-AE7B-1014353CDCF4}];2 ;SalesAmount         ;Element ;Field   ;
+                                                  DataType=Decimal;
+                                                  SourceField=Item Ledger Entry::Sales Amount (Actual) }
+
+    { [{D0D16AE2-740A-4C5E-82CB-16A4DB941589}];2 ;CustomerNo          ;Element ;Field   ;
+                                                  DataType=Code;
+                                                  SourceField=Item Ledger Entry::Source No. }
+
+    { [{C585176F-7163-45AF-8852-FEFBF0338EB3}];2 ;Item                ;Element ;Table   ;
+                                                  SourceTable=Table27;
+                                                  LinkFields=Field1=FIELD(Field2);
+                                                  LinkTable=Item Ledger Entry }
+
+    { [{2855C21A-A9A1-4A15-A722-8FA0BB6A9682}];3 ;ItemNo              ;Element ;Field   ;
+                                                  DataType=Code;
+                                                  SourceField=Item::No. }
+
+    { [{013CB4B3-0954-425F-A788-50D5C03B3936}];3 ;BrandName           ;Element ;Field   ;
+                                                  DataType=Code;
+                                                  SourceField=Item::Brand Name }
+
+  }
+  EVENTS
+  {
+  }
+  REQUESTPAGE
+  {
+    PROPERTIES
+    {
+    }
+    CONTROLS
+    {
+    }
+  }
+  CODE
+  {
+
+    BEGIN
+    END.
+  }
+}
+
+OBJECT XMLport 50011 Customer Debit Credit
+{
+  OBJECT-PROPERTIES
+  {
+    Date=23.09.17;
+    Time=20:07:49;
+    Modified=Yes;
+    Version List=PRX.OGE.WSC.00;
+  }
+  PROPERTIES
+  {
+    UseDefaultNamespace=Yes;
+  }
+  ELEMENTS
+  {
+    { [{C5A3942A-1D22-4419-BA74-2E0D70B6BE36}];  ;CustDC              ;Element ;Text     }
+
+    { [{3A03C4CB-ED75-430E-86E7-D8C770CD4729}];1 ;Customer            ;Element ;Table   ;
+                                                  SourceTable=Table18;
+                                                  CalcFields=Field97,Field98,Field99,Field100 }
+
+    { [{C3A64655-BC4A-4C52-8B07-76682578DFF0}];2 ;LogicalReference    ;Element ;Field   ;
+                                                  DataType=Integer;
+                                                  SourceField=Customer::Logical Reference }
+
+    { [{3363112D-F95E-46F3-80F0-376E4D765857}];2 ;BayiNo              ;Element ;Field   ;
+                                                  DataType=Code;
+                                                  SourceField=Customer::No. }
+
+    { [{05CD5B14-AF5D-4606-948A-3B6E6B617D91}];2 ;Borc                ;Element ;Field   ;
+                                                  DataType=Decimal;
+                                                  SourceField=Customer::Debit Amount }
+
+    { [{61D8B948-4B60-4771-A74D-7CCCC06675A7}];2 ;Alacak              ;Element ;Field   ;
+                                                  DataType=Decimal;
+                                                  SourceField=Customer::Credit Amount }
+
+    { [{274E772C-FC89-4C74-949B-6E5E279E5803}];2 ;BorcYerelPara       ;Element ;Field   ;
+                                                  DataType=Decimal;
+                                                  SourceField=Customer::Debit Amount (LCY) }
+
+    { [{571BB94A-BAA5-4C62-87F8-9BB00EC82BB6}];2 ;AlacakYerelPara     ;Element ;Field   ;
+                                                  DataType=Decimal;
+                                                  SourceField=Customer::Credit Amount (LCY) }
+
+  }
+  EVENTS
+  {
+  }
+  REQUESTPAGE
+  {
+    PROPERTIES
+    {
+    }
+    CONTROLS
+    {
+    }
+  }
+  CODE
+  {
+
+    BEGIN
+    END.
+  }
+}
+
+OBJECT XMLport 50012 Sales Invoice Detail
+{
+  OBJECT-PROPERTIES
+  {
+    Date=30.10.17;
+    Time=12:38:11;
+    Modified=Yes;
+    Version List=PRX.OGE.WSV.00;
+  }
+  PROPERTIES
+  {
+    UseDefaultNamespace=Yes;
+  }
+  ELEMENTS
+  {
+    { [{0B8DD157-0AE3-4194-AB73-1640AB9B4B51}];  ;SalesInvoiceRoot    ;Element ;Text     }
+
+    { [{03570069-EA9C-4CAE-B237-07BE31C23EAC}];1 ;SalesInvoiceLine    ;Element ;Table   ;
+                                                  SourceTable=Table113 }
+
+    { [{87EA4FCC-4848-4B51-A9DF-2FBF3C12106D}];2 ;ItemNo              ;Element ;Field   ;
+                                                  DataType=Code;
+                                                  SourceField=Sales Invoice Line::No. }
+
+    { [{F6E131D6-D45E-42AF-A775-9C7A58C5F71B}];2 ;ItemName            ;Element ;Field   ;
+                                                  DataType=Text;
+                                                  SourceField=Sales Invoice Line::Description }
+
+    { [{60EA3760-9A72-4637-89D5-E2A00479C199}];2 ;InvoiceNo           ;Element ;Field   ;
+                                                  DataType=Code;
+                                                  SourceField=Sales Invoice Line::Document No. }
+
+    { [{1358C75B-EE93-4A6C-8176-3D34ED78EB54}];2 ;Quantity            ;Element ;Field   ;
+                                                  DataType=Decimal;
+                                                  SourceField=Sales Invoice Line::Quantity }
+
+    { [{B1D03E80-F421-4247-8654-6D48CA97BE07}];2 ;UnitOfMeasure       ;Element ;Field   ;
+                                                  DataType=Code;
+                                                  SourceField=Sales Invoice Line::Unit of Measure Code }
+
+    { [{2FFF5EEB-168E-4133-9E07-CBA8F0741E47}];2 ;VatRate             ;Element ;Field   ;
+                                                  DataType=Decimal;
+                                                  SourceField=Sales Invoice Line::VAT % }
+
+    { [{DEFA1FCA-9EBA-4789-8292-40240B2A2030}];2 ;CurencyCode         ;Element ;Field   ;
+                                                  DataType=Code;
+                                                  SourceField=Sales Invoice Line::Document Currency Code }
+
+    { [{6990CADE-346F-4839-836F-48D698905F77}];2 ;CurrencyFactor      ;Element ;Field   ;
+                                                  DataType=Decimal;
+                                                  SourceField=Sales Invoice Line::Document Currency Factor }
+
+    { [{0AA6DEF4-F2C1-4B75-B839-C2753B5B7840}];2 ;LineDiscount        ;Element ;Field   ;
+                                                  DataType=Decimal;
+                                                  SourceField=Sales Invoice Line::Line Discount % }
+
+    { [{3B616848-9AAE-4D8F-962F-CE937E8265E3}];2 ;Amount              ;Element ;Field   ;
+                                                  DataType=Decimal;
+                                                  SourceField=Sales Invoice Line::Amount }
+
+    { [{C47327B8-58E4-47AE-976C-C1E69245E36A}];2 ;AmountIncVat        ;Element ;Field   ;
+                                                  DataType=Decimal;
+                                                  SourceField=Sales Invoice Line::Amount Including VAT }
+
+    { [{4EFCEE1C-6F02-413E-87C9-E86DF5746807}];2 ;SalesInvoiceHeader  ;Element ;Table   ;
+                                                  SourceTable=Table112;
+                                                  LinkFields=Field3=FIELD(Field3);
+                                                  LinkTable=Sales Invoice Line }
+
+    { [{52526805-F878-407C-A935-9B5EC1E47623}];3 ;InvoiceNo           ;Element ;Field   ;
+                                                  DataType=Code;
+                                                  SourceField=Sales Invoice Header::No. }
+
+    { [{64ECAF16-3FFC-4F22-9340-D94F79F57081}];3 ;InvoiceExternalNo   ;Element ;Field   ;
+                                                  DataType=Code;
+                                                  SourceField=Sales Invoice Header::External Document No. }
+
+    { [{4ED493B9-AF09-4A33-9B8C-DC727D67812D}];3 ;InvoiceDate         ;Element ;Field   ;
+                                                  DataType=Date;
+                                                  SourceField=Sales Invoice Header::Posting Date }
+
+    { [{B19EB4B9-D17E-4C11-98B7-A257D992FE18}];2 ;ValueEntry          ;Element ;Table   ;
+                                                  SourceTable=Table5802;
+                                                  LinkFields=Field79=FIELD(Field5),
+                                                             Field6=FIELD(Field3),
+                                                             Field80=FIELD(Field4);
+                                                  LinkTable=Sales Invoice Line }
+
+    { [{85352BA9-4A7D-40AB-A741-7CF4E15A52C3}];3 ;EntryNo             ;Element ;Field   ;
+                                                  DataType=Integer;
+                                                  SourceField=Value Entry::Entry No. }
+
+    { [{FC8E82DF-244C-4EB4-83F6-98F449462C5C}];3 ;ItemLedgerEntryNo   ;Element ;Field   ;
+                                                  DataType=Integer;
+                                                  SourceField=Value Entry::Item Ledger Entry No. }
+
+    { [{27BF4E97-C4B7-476A-9EAB-FA78F62539AE}];3 ;ItemLedgerEntry     ;Element ;Table   ;
+                                                  SourceTable=Table32;
+                                                  LinkFields=Field1=FIELD(Field11);
+                                                  LinkTable=Value Entry }
+
+    { [{FAC07FDB-DA6A-4F66-AC7F-EBD1CD9D4FBD}];4 ;SerialNo            ;Element ;Field   ;
+                                                  DataType=Code;
+                                                  SourceField=Item Ledger Entry::Serial No. }
+
+    { [{2A8F7CAB-0174-4A60-BD40-8ED2D4276EDA}];4 ;PostingDate         ;Element ;Field   ;
+                                                  DataType=Date;
+                                                  SourceField=Item Ledger Entry::Posting Date }
+
+    { [{65EBBD21-18EA-41B8-9C53-8FC284C30AEC}];4 ;SalesAmount         ;Element ;Field   ;
+                                                  DataType=Decimal;
+                                                  SourceField=Item Ledger Entry::Sales Amount (Actual) }
+
+    { [{AA0B3DCC-9587-47FD-931F-9DB58F8244AF}];4 ;UnitofMeasure       ;Element ;Field   ;
+                                                  DataType=Code;
+                                                  SourceField=Item Ledger Entry::Unit of Measure Code }
+
+    { [{82C46F03-C4C3-45EF-AEBE-1360CA8CFEF1}];4 ;SalesShipment       ;Element ;Table   ;
+                                                  SourceTable=Table111;
+                                                  LinkFields=Field3=FIELD(Field6),
+                                                             Field4=FIELD(Field80);
+                                                  LinkTable=Item Ledger Entry }
+
+    { [{5D2B3A43-86A5-4147-B7C5-6991B0B26F27}];5 ;DocumentNo          ;Element ;Field   ;
+                                                  DataType=Code;
+                                                  SourceField=Sales Shipment Line::Document No. }
+
+    { [{0FF99BDF-B611-454F-A590-460BBC547042}];5 ;OrderNo             ;Element ;Field   ;
+                                                  DataType=Code;
+                                                  SourceField=Sales Shipment Line::Order No. }
+
+    { [{ECEF1556-522C-4976-A0EB-00E1FDC00981}];5 ;OrderLineNo         ;Element ;Field   ;
+                                                  DataType=Integer;
+                                                  SourceField=Sales Shipment Line::Order Line No. }
+
+  }
+  EVENTS
+  {
+  }
+  REQUESTPAGE
+  {
+    PROPERTIES
+    {
+    }
+    CONTROLS
+    {
+    }
+  }
+  CODE
+  {
+
+    BEGIN
+    END.
+  }
+}
+
+OBJECT XMLport 50013 Brand Name Export
+{
+  OBJECT-PROPERTIES
+  {
+    Date=25.09.17;
+    Time=12:24:26;
+    Modified=Yes;
+    Version List=PRX.OGE.WSV.00;
+  }
+  PROPERTIES
+  {
+    UseDefaultNamespace=Yes;
+  }
+  ELEMENTS
+  {
+    { [{E69C7728-2B88-4BA0-BC9A-75811ED8B729}];  ;BrandRoot           ;Element ;Text     }
+
+    { [{39DA2606-8919-4D1C-AF66-F23CD14D0D1B}];1 ;BrandName           ;Element ;Table   ;
+                                                  SourceTable=Table50001 }
+
+    { [{2E0204CB-A192-4A3C-8DE7-98F83AC2B18A}];2 ;LogicalReference    ;Element ;Field   ;
+                                                  DataType=Integer;
+                                                  SourceField=Brand Name::Logical Reference }
+
+    { [{88344B28-DFA1-465C-9CEA-F07DC8DB53E3}];2 ;Code                ;Element ;Field   ;
+                                                  DataType=Code;
+                                                  SourceField=Brand Name::Code }
+
+    { [{4706BA29-108E-44FD-8A2B-5258CEDE61D9}];2 ;BrandName           ;Element ;Field   ;
+                                                  DataType=Text;
+                                                  SourceField=Brand Name::Brand Name }
+
+  }
+  EVENTS
+  {
+  }
+  REQUESTPAGE
+  {
+    PROPERTIES
+    {
+    }
+    CONTROLS
+    {
+    }
+  }
+  CODE
+  {
+
+    BEGIN
+    END.
+  }
+}
+
+OBJECT XMLport 50014 Credit Card Import
+{
+  OBJECT-PROPERTIES
+  {
+    Date=15.10.17;
+    Time=23:57:28;
+    Modified=Yes;
+    Version List=PRX.OGE.WSV.00;
+  }
+  PROPERTIES
+  {
+    UseDefaultNamespace=Yes;
+  }
+  ELEMENTS
+  {
+    { [{A356D59D-BCE3-41D7-80B7-12AECA14BF52}];  ;GeneralJournalLine  ;Element ;Table   ;
+                                                  SourceTable=Table81 }
+
+    { [{B789B2F5-2DFC-4DD7-9BD9-368139077249}];1 ;JournalTemplate     ;Element ;Field   ;
+                                                  DataType=Code;
+                                                  SourceField=Gen. Journal Line::Journal Template Name }
+
+    { [{C057B320-CA3A-41ED-8FBC-1EB55C2F1D0F}];1 ;AccountType         ;Element ;Field   ;
+                                                  DataType=Option;
+                                                  SourceField=Gen. Journal Line::Account Type }
+
+    { [{16A6019A-42CA-4B4D-8014-65D4A944D026}];1 ;AccountnNo          ;Element ;Field   ;
+                                                  DataType=Code;
+                                                  SourceField=Gen. Journal Line::Account No. }
+
+    { [{5528D33F-9F45-415E-B4D4-9C30E589BCAE}];1 ;DocumentType        ;Element ;Field   ;
+                                                  DataType=Option;
+                                                  SourceField=Gen. Journal Line::Document Type }
+
+    { [{AD4A6600-6B14-4D3D-8C2C-9F7CAC2787B6}];1 ;DocumentNo          ;Element ;Field   ;
+                                                  DataType=Code;
+                                                  SourceField=Gen. Journal Line::Document No. }
+
+    { [{9EB8A5CF-8F6E-4480-852F-E13EA5D21C37}];1 ;Description         ;Element ;Field   ;
+                                                  DataType=Text;
+                                                  SourceField=Gen. Journal Line::Description }
+
+    { [{19B4FF38-BCAD-4597-A220-730440ED6BB9}];1 ;DocumentDate        ;Element ;Field   ;
+                                                  DataType=Date;
+                                                  SourceField=Gen. Journal Line::Document Date }
+
+    { [{0A7E4116-D096-4931-8607-8EACD01C1F25}];1 ;BalAccountType      ;Element ;Field   ;
+                                                  DataType=Option;
+                                                  SourceField=Gen. Journal Line::Bal. Account Type }
+
+    { [{2F8B0082-061C-4989-9510-19C524392CEB}];1 ;BalAccountNo        ;Element ;Field   ;
+                                                  DataType=Code;
+                                                  SourceField=Gen. Journal Line::Bal. Account No. }
+
+    { [{8DC6A4CC-45B3-4D3D-B0C8-213D4209682B}];1 ;Amount              ;Element ;Field   ;
+                                                  DataType=Decimal;
+                                                  SourceField=Gen. Journal Line::Amount }
+
+    { [{16AA4E42-CC8D-4C8B-82D0-0224C2F09522}];1 ;GiderYeri           ;Element ;Field   ;
+                                                  DataType=Code;
+                                                  SourceField=Gen. Journal Line::Shortcut Dimension 1 Code }
+
+    { [{67261D50-8293-4E81-BCA1-5620C8A6964C}];1 ;Artilar             ;Element ;Field   ;
+                                                  DataType=Code;
+                                                  SourceField=Gen. Journal Line::Shortcut Dimension 2 Code }
+
+    { [{C6CEFF85-0F89-4543-B5EB-F6DC416177D6}];1 ;JournalBatch        ;Element ;Field   ;
+                                                  DataType=Code;
+                                                  SourceField=Gen. Journal Line::Journal Batch Name }
+
+    { [{38785453-7A82-4F3A-B621-B91A97F3D5FE}];1 ;PostingDate         ;Element ;Field   ;
+                                                  DataType=Date;
+                                                  SourceField=Gen. Journal Line::Posting Date }
+
+    { [{270DC956-2810-4476-A2EF-26A56D63A561}];1 ;SourceCode          ;Element ;Field   ;
+                                                  DataType=Code;
+                                                  SourceField=Gen. Journal Line::Source Code }
+
+  }
+  EVENTS
+  {
+  }
+  REQUESTPAGE
+  {
+    PROPERTIES
+    {
+    }
+    CONTROLS
+    {
+    }
+  }
+  CODE
+  {
+
+    BEGIN
+    END.
+  }
+}
+
