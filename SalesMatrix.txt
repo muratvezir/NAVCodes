@@ -1,0 +1,358 @@
+OBJECT Page 50160 Sales Person Order Matrix
+{
+  OBJECT-PROPERTIES
+  {
+    Date=21.06.18;
+    Time=13:41:53;
+    Modified=Yes;
+    Version List=PRX_AKANSU_10.0;
+  }
+  PROPERTIES
+  {
+    CaptionML=[ENU=Sales Person Order Matrix;
+               TRK=Satçü Temsilcisi Sipariü Tablosu];
+    SourceTable=Table13;
+    PageType=List;
+    SourceTableTemporary=Yes;
+    OnOpenPage=BEGIN
+                 GetPageData;
+                 PeriodStart := CALCDATE( '<-CY>', TODAY);
+                 PeriodEnd := CALCDATE( '<CY>', TODAY );
+               END;
+
+    OnAfterGetRecord=BEGIN
+                       CalcAmount;
+                     END;
+
+  }
+  CONTROLS
+  {
+    { 1000000000;0;Container;
+                ContainerType=ContentArea }
+
+    { 1000000012;1;Group  ;
+                Name=Filters;
+                CaptionML=[ENU=Filters;
+                           FIN="";
+                           TRK=Filtreler];
+                GroupType=Group }
+
+    { 1000000010;2;Group  ;
+                GroupType=Group }
+
+    { 1000000009;3;Field  ;
+                CaptionML=[ENU=Period Start Date;
+                           TRK=Baülangçá Tarihi];
+                SourceExpr=PeriodStart;
+                OnValidate=BEGIN
+                             IF PeriodEnd <> 0D THEN BEGIN
+                               GetPageData;
+                               CalcAmount;
+                             END
+                           END;
+                            }
+
+    { 1000000005;3;Field  ;
+                CaptionML=[ENU=Period End Date;
+                           TRK=Bitiü Tarihi];
+                SourceExpr=PeriodEnd;
+                OnValidate=BEGIN
+                             IF PeriodStart <> 0D THEN BEGIN
+                               GetPageData;
+                               CalcAmount;
+                             END
+                           END;
+                            }
+
+    { 1000000001;1;Group  ;
+                Name=Group;
+                GroupType=Repeater }
+
+    { 1000000004;2;Field  ;
+                SourceExpr=Name;
+                StyleExpr=IsTotal }
+
+    { 1000000006;2;Field  ;
+                Name=Field1;
+                DecimalPlaces=2:2;
+                SourceExpr=MatrixCellData[1];
+                CaptionClass=MatrixCaption[1];
+                Editable=FALSE;
+                StyleExpr=IsTotal }
+
+    { 1000000002;2;Field  ;
+                Name=Field2;
+                DecimalPlaces=2:2;
+                SourceExpr=MatrixCellData[2];
+                CaptionClass=MatrixCaption[2];
+                Editable=FALSE;
+                StyleExpr=IsTotal }
+
+    { 1000000007;2;Field  ;
+                Name=Field3;
+                DecimalPlaces=2:2;
+                SourceExpr=MatrixCellData[3];
+                CaptionClass=MatrixCaption[3];
+                Editable=FALSE;
+                StyleExpr=IsTotal }
+
+    { 1000000008;2;Field  ;
+                Name=Field4;
+                DecimalPlaces=2:2;
+                SourceExpr=MatrixCellData[4];
+                CaptionClass=MatrixCaption[4];
+                Editable=FALSE;
+                StyleExpr=IsTotal }
+
+    { 1000000011;2;Field  ;
+                Name=Field5;
+                DecimalPlaces=2:2;
+                SourceExpr=MatrixCellData[5];
+                CaptionClass=MatrixCaption[5];
+                Editable=FALSE;
+                StyleExpr=IsTotal }
+
+  }
+  CODE
+  {
+    VAR
+      MatrixCellData@1000000000 : ARRAY [13] OF Decimal;
+      MatrixCaption@1000000001 : ARRAY [13] OF Text;
+      i@1000000003 : Integer;
+      k@1000000017 : Integer;
+      StartDate@1000000005 : Date;
+      TotalText@1000000006 : TextConst 'ENU=Total Order;TRK=Toplam Sipariü';
+      ProductGroup@1000000008 : Record 5723;
+      TotalKgOrder@1000000009 : Decimal;
+      TotalAmount@1000000007 : Decimal;
+      Amount@1000000019 : Decimal;
+      PeriodStart@1000000013 : Date;
+      PeriodEnd@1000000012 : Date;
+      Date@1000000014 : Record 2000000007;
+      SalespersonPurchaser@1000000015 : Record 13;
+      Total@1000000016 : TextConst 'ENU=TOTAL;TRK=TOPLAM';
+      IsTotal@1000000018 : Text;
+      SalesOrderQuantitesby@1000000020 : Query 50118;
+      SalesOrderArcQuantitesby@1000000002 : Query 50119;
+      SalesHeader@1000000004 : Record 36;
+
+    LOCAL PROCEDURE CalcAmount@1000000000();
+    BEGIN
+
+      CLEAR(i);
+      CLEAR(MatrixCellData);
+      CLEAR(MatrixCaption);
+
+
+      ProductGroup.SETFILTER(Code,'%1|%2|%3|%4','HDPE','AYPE','DOGALGAZ','PVC');
+      IF ProductGroup.FINDSET THEN
+      BEGIN
+        REPEAT
+          IF Code = Total THEN BEGIN
+            SalesOrderQuantitesby.SETRANGE(Salesperson_Code);
+            SalesOrderArcQuantitesby.SETRANGE(Salesperson_Code);
+            IsTotal := 'Strong';
+          END ELSE BEGIN
+            SalesOrderQuantitesby.SETRANGE(Salesperson_Code,Rec.Code);
+            SalesOrderArcQuantitesby.SETRANGE(Salesperson_Code,Rec.Code);
+            IsTotal := '';
+          END;
+          i := i+1;
+          CLEAR(TotalKgOrder);
+          SalesOrderQuantitesby.SETRANGE(ProductGroupCodeFilter,ProductGroup.Code);
+          SalesOrderQuantitesby.SETFILTER(Order_Date,'%1..%2',PeriodStart,PeriodEnd);
+          SalesOrderQuantitesby.OPEN;
+          WHILE SalesOrderQuantitesby.READ DO BEGIN
+            TotalKgOrder := TotalKgOrder + (SalesOrderQuantitesby.Sum_Quantity *(1/SalesOrderQuantitesby.Qty_per_Unit_of_Measure));
+          END;
+
+
+          SalesOrderArcQuantitesby.SETRANGE(ProductGroupCodeFilter,ProductGroup.Code);
+          SalesOrderArcQuantitesby.SETFILTER(Order_Date,'%1..%2',PeriodStart,PeriodEnd);
+          SalesOrderArcQuantitesby.SETRANGE(Completely_Shipped,TRUE);
+          SalesOrderArcQuantitesby.OPEN;
+
+          WHILE SalesOrderArcQuantitesby.READ DO BEGIN
+            IF NOT SalesHeader.GET(SalesHeader."Document Type"::Order,SalesOrderArcQuantitesby.No) THEN
+            TotalKgOrder := TotalKgOrder + (SalesOrderArcQuantitesby.Sum_Quantity * (1/SalesOrderArcQuantitesby.Qty_per_Unit_of_Measure));
+          END;
+
+          MatrixCellData[i] := TotalKgOrder;
+          MatrixCaption[i] :=  STRSUBSTNO('%1 Sipariü',ProductGroup.Description);
+          CLEAR(Amount);
+          TotalAmount := TotalAmount + TotalKgOrder;
+        UNTIL ProductGroup.NEXT = 0 ;
+
+         i := i+1;
+         MatrixCellData[i] := TotalAmount;
+         CLEAR(TotalAmount);
+         MatrixCaption[i] :=  STRSUBSTNO('%1',TotalText);
+
+
+      END;
+    END;
+
+    LOCAL PROCEDURE MatrixDrillDown@1000000001();
+    BEGIN
+    END;
+
+    LOCAL PROCEDURE GetPageData@1000000002();
+    BEGIN
+      DELETEALL;
+      IF SalespersonPurchaser.FINDSET THEN
+      REPEAT
+        INIT;
+        Rec.TRANSFERFIELDS(SalespersonPurchaser);
+        INSERT
+      UNTIL SalespersonPurchaser.NEXT = 0;
+      INIT;
+      Rec.Code := Total;
+      Rec.Name := Total;
+      INSERT;
+    END;
+
+    BEGIN
+    END.
+  }
+}
+
+OBJECT Query 50118 Sales Order Quantites by
+{
+  OBJECT-PROPERTIES
+  {
+    Date=21.06.18;
+    Time=13:42:39;
+    Modified=Yes;
+    Version List=;
+  }
+  PROPERTIES
+  {
+  }
+  ELEMENTS
+  {
+    { 1000000000;;DataItem;                  ;
+               DataItemTable=Table36;
+               DataItemTableFilter=Document Type=FILTER(Order) }
+
+    { 1000000011;1;Column;                   ;
+               DataSource=No. }
+
+    { 1000000001;1;Filter;                   ;
+               DataSource=Salesperson Code }
+
+    { 1000000008;1;Filter;                   ;
+               DataSource=Document Date }
+
+    { 1000000010;1;Filter;                   ;
+               DataSource=Order Date }
+
+    { 1000000002;1;DataItem;                 ;
+               DataItemTable=Table37;
+               DataItemTableFilter=Type=FILTER(Item);
+               DataItemLink=Document Type=Sales_Header."Document Type",
+                            Sell-to Customer No.=Sales_Header."Sell-to Customer No.",
+                            Document No.=Sales_Header."No." }
+
+    { 1000000003;2;Column;                   ;
+               DataSource=Product Group Code }
+
+    { 1000000005;2;Filter;ProductGroupCodeFilter;
+               DataSource=Product Group Code }
+
+    { 1000000004;2;Column;                   ;
+               DataSource=Quantity;
+               MethodType=Totals;
+               Method=Sum }
+
+    { 1000000009;2;Filter;                   ;
+               DataSource=Quantity Invoiced }
+
+    { 1000000006;2;DataItem;                 ;
+               DataItemTable=Table5404;
+               DataItemTableFilter=Code=CONST(KG);
+               DataItemLink=Item No.=Sales_Line."No." }
+
+    { 1000000007;3;Column;                   ;
+               DataSource=Qty. per Unit of Measure }
+
+  }
+  CODE
+  {
+
+    BEGIN
+    END.
+  }
+}
+
+OBJECT Query 50119 Sales Order Arc. Quantites by
+{
+  OBJECT-PROPERTIES
+  {
+    Date=21.06.18;
+    Time=13:48:41;
+    Modified=Yes;
+    Version List=;
+  }
+  PROPERTIES
+  {
+  }
+  ELEMENTS
+  {
+    { 1000000000;;DataItem;                  ;
+               DataItemTable=Table5107;
+               DataItemTableFilter=Document Type=FILTER(Order) }
+
+    { 1000000001;1;Filter;                   ;
+               DataSource=Salesperson Code }
+
+    { 1000000008;1;Filter;                   ;
+               DataSource=Document Date }
+
+    { 1000000010;1;Filter;                   ;
+               DataSource=Order Date }
+
+    { 1000000011;1;Column;                   ;
+               DataSource=No. }
+
+    { 1000000012;1;Column;                   ;
+               DataSource=Completely Shipped }
+
+    { 1000000002;1;DataItem;                 ;
+               DataItemTable=Table5108;
+               DataItemTableFilter=Type=FILTER(Item);
+               DataItemLink=Document Type=Sales_Header_Archive."Document Type",
+                            Sell-to Customer No.=Sales_Header_Archive."Sell-to Customer No.",
+                            Document No.=Sales_Header_Archive."No.",
+                            Version No.=Sales_Header_Archive."Version No." }
+
+    { 1000000003;2;Column;                   ;
+               DataSource=Product Group Code }
+
+    { 1000000005;2;Filter;ProductGroupCodeFilter;
+               DataSource=Product Group Code }
+
+    { 1000000004;2;Column;                   ;
+               DataSource=Quantity;
+               MethodType=Totals;
+               Method=Sum }
+
+    { 1000000009;2;Filter;                   ;
+               DataSource=Quantity Invoiced }
+
+    { 1000000006;2;DataItem;                 ;
+               DataItemTable=Table5404;
+               DataItemTableFilter=Code=CONST(KG);
+               DataItemLink=Item No.=Sales_Line_Archive."No." }
+
+    { 1000000007;3;Column;                   ;
+               DataSource=Qty. per Unit of Measure }
+
+  }
+  CODE
+  {
+
+    BEGIN
+    END.
+  }
+}
+
